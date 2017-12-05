@@ -1,6 +1,6 @@
 # FunctionalGlycanDomain
 
-Authors: Ben Kellman and Bokan Boa
+Authors: Ben Kellman and Bokan Bao
 
 ## Objective: Functional Glycan Annotation
 - Association of glycans with functions through covalent and lectin interactions
