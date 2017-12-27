@@ -32,24 +32,32 @@ for(t in type){
   }
 }
 
-fisher=unlist(lapply(names(l),function(n){
+fisher=do.call(rbind,lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'fisher_assumptions')){
     print(n)
     print(paste('Pr(fisher):',p<-fisher.test(li)$p.value))
     print(li)
-    p
+    c(test='fisher',compare=paste(rownames(li),collapse='_'),selection=rownames(li)[which.max(c(li[1,2]/sum(li[1,]),li[2,2]/sum(li[2,])))],
+      v1=paste(li[1,2],'/',sum(li[1,])) , v2=paste(li[2,2],'/',sum(li[2,])),p.value=p,motif=strsplit(n,'\\.')[[1]][2])
   }
 }))
 
-chisqr=unlist(lapply(names(l),function(n){
+chisqr=do.call(rbind,lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'chisqr_assumptions')){
     print(n)
     print(paste('Pr(chisqr):',p<-chisq.test(li)$p.value))
     print(li)
-    p
+    c(test='chisqr',compare=paste(rownames(li),collapse='_'),selection=rownames(li)[which.max(c(li[1,2]/sum(li[1,]),li[2,2]/sum(li[2,])))],
+      v1=paste(li[1,2],'/',sum(li[1,])) , v2=paste(li[2,2],'/',sum(li[2,])),p.value=p,motif=strsplit(n,'\\.')[[1]][2])
   }
 }))
 
+out = rbind(fisher,chisqr)
+out = out[order(out[,'motif']),]
 
+library(openxlsx)
+
+write.xlsx(out,file = 'annotation/virus_motif.xlsx')
+#r2 = read.csv('data/glycan_motifs/lectinsVSligands.txt')
