@@ -1,25 +1,38 @@
-library(broom)
-# setwd('../Google Drive/00_professional/projects/FunctionalGlycanDomain/')
+---
+title: "Virus-Motif Annotation Anyalysis"
+output: html_notebook
+---
 
+## Loading annotation table
+
+```{r}
+#setwd('../Google Drive/00_professional/projects/FunctionalGlycanDomain/')
 r = read.csv('data/glycan_motifs/lectinsVSmotifs.txt')
 
 motifs = grep('X.G00',colnames(r),value = T)
 taxa = c(' X.Genus.','X.Species.')
+```
 
-##
+## Preview Co-occurance of Motifs
+```{r}
 library(gplots)
-heatmap.2( na.omit(data.matrix(r[,motifs])) , trace='none', labRow = r$X.GenomeComp.)
+#heatmap.2( na.omit(data.matrix(r[,motifs])) , trace='none', labRow = r$X.GenomeComp.)
 heatmap.2( na.omit(data.matrix(r[order(r$X.GenomeComp.),motifs])) , trace='none', labRow = r$X.GenomeComp.,Rowv = F)
+```
 
-## init - genometype variables
+
+## Initialize Genome-type variables
+```{r}
 r$X.GenomeComp.[r$X.GenomeComp.=='ssrna-rt'] = NA
 r$ss_ds = factor( ifelse( grepl('^ds',r$X.GenomeComp.) , 'ds', ifelse(grepl('^ss',r$X.GenomeComp.), 'ss', NA)))
 r$rna_dna = factor( ifelse( grepl('rna',r$X.GenomeComp.) , 'rna', ifelse(grepl('dna',r$X.GenomeComp.), 'dna', NA)))
 r$strand = factor( ifelse( grepl('rna\\(\\-\\)',r$X.GenomeComp.) , 'neg', ifelse(grepl('rna\\(\\+\\)',r$X.GenomeComp.), 'pos', NA)))
 
 type = c('ss_ds','rna_dna','strand')
+```
 
-## associations
+## Compute Associations
+```{r}
 l=list()
 for(t in type){
   for(m in motifs){
@@ -31,7 +44,10 @@ for(t in type){
     l[[paste0(t,'_',m)]]=tab
   }
 }
+```
 
+## Fisher Exact Test for Small Expected Values
+```{r}
 fisher=unlist(lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'fisher_assumptions')){
@@ -41,7 +57,10 @@ fisher=unlist(lapply(names(l),function(n){
     p
   }
 }))
+```
 
+## X^2 test for Non-small Expected Values
+```{r}
 chisqr=unlist(lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'chisqr_assumptions')){
@@ -51,5 +70,5 @@ chisqr=unlist(lapply(names(l),function(n){
     p
   }
 }))
-
+```
 
