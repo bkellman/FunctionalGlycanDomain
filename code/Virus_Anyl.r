@@ -25,16 +25,29 @@ for(t in type){
   for(m in motifs){
     if( length(table(r[[m]]))<2 ){next}
     tab=table(r[[t]],r[[m]],useNA = 'no')
-    if( min(tab)<4){next}
+    expected = chisq.test(tab)$expected
+    attr(tab,'fisher_assumptions')= sum(tab)<1000 & all(expected>1) & (sum(expected<5)/dim(expected))>.2
+    attr(tab,'chisqr_assumptions')= all(expected>1) & (sum(expected>5)/dim(expected))>.8
     l[[paste0(t,'_',m)]]=tab
   }
 }
 
-jnk=lapply(names(l),function(n){
+fisher=lapply(names(l),function(n){
   li=l[[n]]
-  print(n)
-  print(paste('Pr(fisher):',fisher.test(li)$p.value))
-  print(li)
-  })
+  if( attr(li,'fisher_assumptions')){
+    print(n)
+    print(paste('Pr(fisher):',fisher.test(li)$p.value))
+    print(li)
+  }
+})
+
+chisqr=lapply(names(l),function(n){
+  li=l[[n]]
+  if( attr(li,'chisqr_assumptions')){
+    print(n)
+    print(paste('Pr(chisqr):',chisq.test(li)$p.value))
+    print(li)
+  }
+})
 
 
