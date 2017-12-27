@@ -176,9 +176,9 @@ $(document).ready(function () {
 <h2>Loading annotation table</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuciA9IHJlYWQuY3N2KCdkYXRhL2dseWNhbl9tb3RpZnMvbGVjdGluc1ZTbW90aWZzLnR4dCcpXG5cbmBgYCJ9 -->
-<pre class="r"><code>r = read.csv('data/glycan_motifs/lectinsVSmotifs.txt')
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3NldHdkKCcuLi9Hb29nbGUgRHJpdmUvMDBfcHJvZmVzc2lvbmFsL3Byb2plY3RzL0Z1bmN0aW9uYWxHbHljYW5Eb21haW4vJylcbnIgPSByZWFkLmNzdignZGF0YS9nbHljYW5fbW90aWZzL2xlY3RpbnNWU21vdGlmcy50eHQnKVxuYGBgIn0= -->
+<pre class="r"><code>#setwd('../Google Drive/00_professional/projects/FunctionalGlycanDomain/')
+r = read.csv('data/glycan_motifs/lectinsVSmotifs.txt')</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-output-begin eyJkYXRhIjoiY2Fubm90IG9wZW4gZmlsZSAnZGF0YS9nbHljYW5fbW90aWZzL2xlY3RpbnNWU21vdGlmcy50eHQnOiBObyBzdWNoIGZpbGUgb3IgZGlyZWN0b3J5RXJyb3IgaW4gZmlsZShmaWxlLCBcInJ0XCIpIDogY2Fubm90IG9wZW4gdGhlIGNvbm5lY3Rpb25cbiJ9 -->
 <pre><code>cannot open file 'data/glycan_motifs/lectinsVSmotifs.txt': No such file or directoryError in file(file, &quot;rt&quot;) : cannot open the connection</code></pre>
@@ -190,9 +190,10 @@ $(document).ready(function () {
 <h2>Preview Co-occurance of Motifs</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaGVhdG1hcC4yKCBuYS5vbWl0KGRhdGEubWF0cml4KHJbb3JkZXIociRYLkdlbm9tZUNvbXAuKSxtb3RpZnNdKSkgLCB0cmFjZT0nbm9uZScsIGxhYlJvdyA9IHIkWC5HZW5vbWVDb21wLixSb3d2ID0gRilcblxuYGBgIn0= -->
-<pre class="r"><code>heatmap.2( na.omit(data.matrix(r[order(r$X.GenomeComp.),motifs])) , trace='none', labRow = r$X.GenomeComp.,Rowv = F)
-</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShncGxvdHMpXG4jaGVhdG1hcC4yKCBuYS5vbWl0KGRhdGEubWF0cml4KHJbLG1vdGlmc10pKSAsIHRyYWNlPSdub25lJywgbGFiUm93ID0gciRYLkdlbm9tZUNvbXAuKVxuaGVhdG1hcC4yKCBuYS5vbWl0KGRhdGEubWF0cml4KHJbb3JkZXIociRYLkdlbm9tZUNvbXAuKSxtb3RpZnNdKSkgLCB0cmFjZT0nbm9uZScsIGxhYlJvdyA9IHIkWC5HZW5vbWVDb21wLixSb3d2ID0gRilcbmBgYCJ9 -->
+<pre class="r"><code>library(gplots)
+#heatmap.2( na.omit(data.matrix(r[,motifs])) , trace='none', labRow = r$X.GenomeComp.)
+heatmap.2( na.omit(data.matrix(r[order(r$X.GenomeComp.),motifs])) , trace='none', labRow = r$X.GenomeComp.,Rowv = F)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-output-begin eyJkYXRhIjoiRGlzY3JlcGFuY3k6IFJvd3YgaXMgRkFMU0UsIHdoaWxlIGRlbmRyb2dyYW0gaXMgYGJvdGgnLiBPbWl0dGluZyByb3cgZGVuZG9ncmFtLlxuIn0= -->
 <pre><code>Discrepancy: Rowv is FALSE, while dendrogram is `both'. Omitting row dendogram.</code></pre>
@@ -378,7 +379,7 @@ for(t in type){
 <h2>X^2 test for Non-small Expected Values</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2hpc3FyPXVubGlzdChsYXBwbHkobmFtZXMobCksZnVuY3Rpb24obil7XG4gIGxpPWxbW25dXVxuICBpZiggYXR0cihsaSwnY2hpc3FyX2Fzc3VtcHRpb25zJykpe1xuICAgIHByaW50KG4pXG4gICAgcHJpbnQocGFzdGUoJ1ByKGNoaXNxcik6JyxwPC1jaGlzcS50ZXN0KGxpKSRwLnZhbHVlKSlcbiAgICBwcmludChsaSlcbiAgICBwXG4gIH1cbn0pKVxuXG5gYGAifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2hpc3FyPXVubGlzdChsYXBwbHkobmFtZXMobCksZnVuY3Rpb24obil7XG4gIGxpPWxbW25dXVxuICBpZiggYXR0cihsaSwnY2hpc3FyX2Fzc3VtcHRpb25zJykpe1xuICAgIHByaW50KG4pXG4gICAgcHJpbnQocGFzdGUoJ1ByKGNoaXNxcik6JyxwPC1jaGlzcS50ZXN0KGxpKSRwLnZhbHVlKSlcbiAgICBwcmludChsaSlcbiAgICBwXG4gIH1cbn0pKVxuYGBgIn0= -->
 <pre class="r"><code>chisqr=unlist(lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'chisqr_assumptions')){
@@ -387,8 +388,7 @@ for(t in type){
     print(li)
     p
   }
-}))
-</code></pre>
+}))</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-output-begin eyJkYXRhIjoiWzFdIFwic3RyYW5kX1guRzAwMDY1TU8uXCJcblsxXSBcIlByKGNoaXNxcik6IDkuMDI0NDUxNDk2ODc3NzZlLTA4XCJcbiAgICAgXG4gICAgICAgMCAgMVxuICBuZWcgNDEgODZcbiAgcG9zIDE5ICAwXG5bMV0gXCJzdHJhbmRfWC5HMDAwNTRNTy5cIlxuWzFdIFwiUHIoY2hpc3FyKTogOC4xNzY0MDMyMTA5OTI0M2UtMDVcIlxuICAgICBcbiAgICAgICAwICAxXG4gIG5lZyA2MiA2NVxuICBwb3MgMTkgIDBcblsxXSBcInN0cmFuZF9YLkcwMDA1NU1PLlwiXG5bMV0gXCJQcihjaGlzcXIpOiAxLjU0Nzk1MjY0NTcyNTc1ZS0wNlwiXG4gICAgIFxuICAgICAgIDAgIDFcbiAgbmVnIDI4IDk5XG4gIHBvcyAxNSAgNFxuWzFdIFwic3RyYW5kX1guRzAwMDUxTU8uXCJcblsxXSBcIlByKGNoaXNxcik6IDAuMDI3MzEyODk2OTM1MDAzMlwiXG4gICAgIFxuICAgICAgIDAgIDFcbiAgbmVnIDYyIDY1XG4gIHBvcyAxNSAgNFxuWzFdIFwic3RyYW5kX1guRzAwMDU2TU8uXCJcblsxXSBcIlByKGNoaXNxcik6IDAuNTk4MzQyNTA5MDI3NThcIlxuICAgICBcbiAgICAgICAwICAxXG4gIG5lZyA1MiA3NVxuICBwb3MgIDYgMTNcbiJ9 -->
 <pre><code>[1] &quot;strand_X.G00065MO.&quot;
