@@ -48,27 +48,66 @@ for(t in type){
 
 ## Fisher Exact Test for Small Expected Values
 ```{r}
-fisher=unlist(lapply(names(l),function(n){
+library(boot)
+library(broom)
+fisher.test.boot<-function(t_var,m_var,data,indicies){
+   d <- data[indicies,]
+   out=as.vector( tidy( fisher.test(table(d[[t_var]],d[[m_var]],useNA = 'no')) )[1:4] )
+#   print(out)
+   return(out$estimate, out$p.value)
+}
+
+
+fisher=do.call(rbind,lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'fisher_assumptions')){
     print(n)
-    print(paste('Pr(fisher):',p<-fisher.test(li)$p.value))
+    n_split = strsplit(n,'_X')[[1]]
+#    p<-boot(data=r,statistic = fisher.test.boot,R=100, t_var=n_split[1],m_var=paste0('X',n_split[2]))
+    #print(paste('Pr(fisher):',
+    p<-fisher.test(li)
     print(li)
-    p
+    c(test='fisher',compare=paste(rownames(li),collapse='_'),selection=rownames(li)[which.max(c(li[1,2]/sum(li[1,]),li[2,2]/sum(li[2,])))],
+      v1=paste(li[1,2],'/',sum(li[1,])) , v2=paste(li[2,2],'/',sum(li[2,])),stat=p$estimate,conf.low=p$conf.int[1],
+      conf.high=p$conf.int[2],p.value=p$p.value,motif=strsplit(n,'\\.')[[1]][2])
   }
 }))
 ```
 
 ## X^2 test for Non-small Expected Values
 ```{r}
-chisqr=unlist(lapply(names(l),function(n){
+library(boot)
+library(broom)
+chisq.test.boot<-function(t_var,m_var,data,indicies){
+   d <- data[indicies,]
+   out=chisq.test(table(d[[t_var]],d[[m_var]],useNA = 'no'))
+   c(out$statistic)
+   #print(out)
+   #return(out)
+}
+
+chisqr=do.call(rbind,lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'chisqr_assumptions')){
     print(n)
-    print(paste('Pr(chisqr):',p<-chisq.test(li)$p.value))
+    p<-boot(data=r,statistic = chisq.test.boot,R=100, t_var=n_split[1],m_var=paste0('X',n_split[2]))
+    ci=boot.ci(p,type='perc')
+    p0<-chisq.test(li)
     print(li)
-    p
+    c(test='chisqr',compare=paste(rownames(li),collapse='_'),selection=rownames(li)[which.max(c(li[1,2]/sum(li[1,]),li[2,2]/sum(li[2,])))],
+      v1=paste(li[1,2],'/',sum(li[1,])) , v2=paste(li[2,2],'/',sum(li[2,])),stat=p0$statistic,conf.low=ci$percent[4],
+      conf.high=ci$percent[5],p.value=p0$p.value, motif=strsplit(n,'\\.')[[1]][2])
   }
 }))
+```
+
+## Save to xlsx
+```{r}
+out = rbind(fisher,chisqr)
+out = out[order(out[,'motif']),]
+
+library(openxlsx)
+
+write.xlsx(out,file = 'annotation/virus_motif.xlsx')
 ```
 
