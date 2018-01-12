@@ -29,9 +29,9 @@ heatmap.2( na.omit(data.matrix(r[order(r$X.GenomeComp.),motifs])) , trace='none'
 r$X.GenomeComp.[r$X.GenomeComp.=='ssrna-rt'] = NA
 r$ss_ds = factor( ifelse( grepl('^ds',r$X.GenomeComp.) , 'ds', ifelse(grepl('^ss',r$X.GenomeComp.), 'ss', NA)))
 r$rna_dna = factor( ifelse( grepl('rna',r$X.GenomeComp.) , 'rna', ifelse(grepl('dna',r$X.GenomeComp.), 'dna', NA)))
-r$strand = factor( ifelse( grepl('rna\\(\\-\\)',r$X.GenomeComp.) , 'neg', ifelse(grepl('rna\\(\\+\\)',r$X.GenomeComp.), 'pos', NA)))
+r$neg_pos = factor( ifelse( grepl('rna\\(\\-\\)',r$X.GenomeComp.) , 'neg', ifelse(grepl('rna\\(\\+\\)',r$X.GenomeComp.), 'pos', NA)))
 
-type = c('ss_ds','rna_dna','strand')
+type = c('ss_ds','rna_dna','neg_pos')
 
 r_orig = r
 r = r_orig
@@ -158,6 +158,7 @@ out_t_m = do.call(rbind,lapply(names(mods),function(m_n){
   df
 }))
 colnames(out_t_m) = c('Estimate','SE','z','p','lower','upper','taxa_type','p_LRT','type','motif')
+out_t_m$var = unlist( lapply( out_t_m$type[seq(1,nrow(out_t_m),2)] , function(x) strsplit(x,'_')[[1]][1:2] ))
 
 print('done')
 
@@ -182,16 +183,23 @@ ggplot(data=dat,aes(x=taxa,y=Estimate,color=-log(p,10),label=ifelse(p<.05,motif,
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('species')
 ```
 ```{r}
-dat = droplevels(unique( out_t_m[!grepl('(Intercept)',rownames(out_t_m)) & is.finite(out_t_m$lower) & is.finite(out_t_m$upper) ,] ))
-ggplot(data=dat[dat$taxa_type=='genus',],aes(x=motif,y=Estimate,color=-log(p_LRT,10),shape=type)) +
-  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('GLMM controlling for genus') 
+dat = droplevels(unique( out_t_m[ is.finite(out_t_m$lower) & is.finite(out_t_m$upper) & out_t_m$lower>(-100) & out_t_m$upper<100 ,] ))
+ggplot(data=dat[dat$taxa_type=='genus',],aes(x=var,y=Estimate,color=-log(p_LRT,10))) +
+  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+ facet_wrap(~motif+type,scales = 'free')+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ggtitle('GLMM controlling for genus') 
 ```
+
+
 ```{r}
-dat = droplevels(unique( out_t_m[!grepl('(Intercept)',rownames(out_t_m)) & is.finite(out_t_m$lower) & is.finite(out_t_m$upper) ,] ))
-ggplot(data=dat[dat$taxa_type=='none',],aes(x=motif,y=Estimate,color=-log(p,10),shape=type)) +
-  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('GLM') 
+#dat = droplevels(unique( out_t_m[!grepl('(Intercept)',rownames(out_t_m)) & is.finite(out_t_m$lower) & is.finite(out_t_m$upper) ,] ))
+#ggplot(data=dat[dat$taxa_type=='none',],aes(x=motif,y=Estimate,color=-log(p,10),shape=type)) +
+#  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
+#  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('GLM') 
+
+dat = droplevels(unique( out_t_m[ is.finite(out_t_m$lower) & is.finite(out_t_m$upper) & out_t_m$lower>(-100) & out_t_m$upper<100 ,] ))
+ggplot(data=dat[dat$taxa_type=='none',],aes(x=var,y=Estimate,color=-log(p,10),shape=type)) +
+  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+ facet_wrap(~motif,scales = 'free')+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ggtitle('GLMM controlling for genus') 
 ```
 
 ## Save to xlsx
