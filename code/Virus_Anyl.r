@@ -4,7 +4,7 @@ library(broom)
 r = read.csv('data/glycan_motifs/lectinsVSmotifs.txt')
 
 motifs = grep('X.G00',colnames(r),value = T)
-taxa = c(' X.Genus.','X.Species.')
+taxa = colnames(r)[1:3]
 
 ##
 library(gplots)
@@ -19,9 +19,13 @@ r$strand = factor( ifelse( grepl('rna\\(\\-\\)',r$X.GenomeComp.) , 'neg', ifelse
 
 type = c('ss_ds','rna_dna','strand')
 
+r_orig = r
+r = r_orig
+r = r[r$X.Genus. %in% names(table(r$X.Genus.))[table(r$X.Genus.)>=5],]
+
 ## associations
 l=list()
-for(t in type){
+for(t in c(type)){
   for(m in motifs){
     if( length(table(r[[m]]))<2 ){next}
     tab=table(r[[t]],r[[m]],useNA = 'no')
@@ -32,14 +36,29 @@ for(t in type){
   }
 }
 
+### fisher
+library(boot)
+library(broom)
+fisher.test.boot<-function(t_var,m_var,data,indicies){
+  d <- data[indicies,]
+  out=as.vector( tidy( fisher.test(table(d[[t_var]],d[[m_var]],useNA = 'no')) )[1:4] )
+  #   print(out)
+  return(out$estimate, out$p.value)
+}
+
+
 fisher=do.call(rbind,lapply(names(l),function(n){
   li=l[[n]]
   if( attr(li,'fisher_assumptions')){
     print(n)
-    print(paste('Pr(fisher):',p<-fisher.test(li)$p.value))
+    n_split = strsplit(n,'_X')[[1]]
+    #    p<-boot(data=r,statistic = fisher.test.boot,R=100, t_var=n_split[1],m_var=paste0('X',n_split[2]))
+    #print(paste('Pr(fisher):',
+    p<-fisher.test(li)
     print(li)
     c(test='fisher',compare=paste(rownames(li),collapse='_'),selection=rownames(li)[which.max(c(li[1,2]/sum(li[1,]),li[2,2]/sum(li[2,])))],
-      v1=paste(li[1,2],'/',sum(li[1,])) , v2=paste(li[2,2],'/',sum(li[2,])),p.value=p,motif=strsplit(n,'\\.')[[1]][2])
+      v1=paste(li[1,2],'/',sum(li[1,])) , v2=paste(li[2,2],'/',sum(li[2,])),stat=p$estimate,conf.low=p$conf.int[1],
+      conf.high=p$conf.int[2],p.value=p$p.value,motif=strsplit(n,'\\.')[[1]][2])
   }
 }))
 

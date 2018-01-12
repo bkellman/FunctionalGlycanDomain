@@ -6,6 +6,9 @@ output: html_notebook
 ## Loading annotation table
 
 ```{r}
+library(ggplot2)
+library(ggrepel)
+
 #setwd('../Google Drive/00_professional/projects/FunctionalGlycanDomain/')
 r = read.csv('data/glycan_motifs/lectinsVSmotifs.txt')
 
@@ -29,6 +32,10 @@ r$rna_dna = factor( ifelse( grepl('rna',r$X.GenomeComp.) , 'rna', ifelse(grepl('
 r$strand = factor( ifelse( grepl('rna\\(\\-\\)',r$X.GenomeComp.) , 'neg', ifelse(grepl('rna\\(\\+\\)',r$X.GenomeComp.), 'pos', NA)))
 
 type = c('ss_ds','rna_dna','strand')
+
+r_orig = r
+r = r_orig
+r = droplevels( r[r$X.Genus. %in% names(table(r$X.Genus.))[table(r$X.Genus.)>=5],] )
 ```
 
 ## Compute Associations
@@ -100,6 +107,92 @@ chisqr=do.call(rbind,lapply(names(l),function(n){
   }
 }))
 ```
+## mixed effect models
+```{r}
+library(lme4)
+mods=list()
+for(t in c(type)){
+  for(m in motifs){
+    print(m)
+    if(sd(r[[m]])==0){next}
+    mods[[paste0(t,'_',m)]]=list( try(lm_t<-glm(as.formula(paste(m,'~',t)),data=r,family='binomial')),
+                               try(lm_g<-glm(as.formula(paste(m,'~X.Genus.')),data=r,family='binomial')),
+                               try(lm_s<-glm(as.formula(paste(m,'~X.Species.')),data=r,family='binomial')),
+                               try(lmer_genus<-glmer(as.formula(paste(m,'~(1|X.Genus.)')),data=r,family='binomial')),
+                               try(lmer_t_genus<-glmer(as.formula(paste(m,'~',t,'+(1|X.Genus.)')),data=r,family='binomial')),
+                               try(lmer_genus_species<-glmer(as.formula(paste(m,'~(1|X.Genus./X.Species.)')),data=r,family='binomial')),
+                               try(lmer_t_genus_species<-glmer(as.formula(paste(m,'~',t,'+(1|X.Genus./X.Species.)')),data=r,family='binomial'))
+      )
+  }
+}
+
+# species X motif, genus x motif
+out_g_s = do.call(rbind,lapply(names(mods),function(m_n){
+  m = mods[[m_n]]
+  m_g = data.frame( coef(summary(m[[2]])) , confint(m[[2]]) , taxa_type='genus' )
+  m_g$taxa = gsub('(Intercept)',"Influenzavirus A",gsub('X.Genus.','',rownames(m_g)))
+  m_s = data.frame( coef(summary(m[[3]])) , confint(m[[3]]) , taxa_type='species')
+  m_s$taxa = gsub('(Intercept)',"influenza a virus",gsub('X.Species.','',rownames(m_s)))
+  df = rbind(m_g,m_s)
+  df$type = strsplit( m_n,split='\\.')[[1]][1]
+  df$motif = strsplit( m_n,split='\\.')[[1]][2]
+  df
+}))
+out_g_s = unique( out_g_s[,colnames(out_g_s)!='type'] )
+colnames(out_g_s) = c('Estimate','SE','z','p','lower','upper','taxa_type','taxa','motif')
+
+#####
+# species X motif, genus x motif
+out_t_m = do.call(rbind,lapply(names(mods),function(m_n){
+  df=NULL; m_g=NULL; m_s=NULL
+  print(m_n)
+  m = mods[[m_n]]
+  try( df <- data.frame( coef(summary(m[[1]])) , confint(m[[1]]) , taxa_type='none' ,p_LRT=NA) )
+  if(!is.data.frame(df)){return(NULL)}
+  try( m_g <- data.frame( coef(summary(m[[5]])) , confint(m[[5]])[-1,] , taxa_type='genus' , p_LRT = anova(m[[4]],m[[5]],test='LRT')[2,8] ) )
+  if(is.data.frame(m_g)){df = rbind(df,m_g)}
+  try( m_s <- data.frame( coef(summary(m[[7]])) , confint(m[[7]])[-1,] , taxa_type='genus/species', p_LRT = anova(m[[6]],m[[7]],test='LRT')[2,8]))
+  if(is.data.frame(m_s)){df = rbind(df,m_s)}
+  df$type = strsplit( m_n,split='\\.')[[1]][1]
+  df$motif = strsplit( m_n,split='\\.')[[1]][2]
+  df
+}))
+colnames(out_t_m) = c('Estimate','SE','z','p','lower','upper','taxa_type','p_LRT','type','motif')
+
+print('done')
+
+library(gridExtra)
+library(ggrepel)
+```
+
+```{r}
+dat = na.omit( out_g_s[out_g_s$upper<1e3 & out_g_s$lower>-1e3 & out_g_s$taxa_type=='genus',])
+ggplot(data=dat,aes(x=taxa,y=Estimate,color=-log(p,10),label=ifelse(p<.05,motif,NA))) +
+  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
+  geom_label_repel(size=2)+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+ggtitle('genus')
+
+```
+
+```{r}
+dat = na.omit( out_g_s[out_g_s$upper<1e3 & out_g_s$lower>-1e3 & out_g_s$taxa_type=='species',])
+ggplot(data=dat,aes(x=taxa,y=Estimate,color=-log(p,10),label=ifelse(p<.05,motif,NA))) +
+  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
+  geom_label_repel(size=2)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('species')
+```
+```{r}
+dat = droplevels(unique( out_t_m[!grepl('(Intercept)',rownames(out_t_m)) & is.finite(out_t_m$lower) & is.finite(out_t_m$upper) ,] ))
+ggplot(data=dat[dat$taxa_type=='genus',],aes(x=motif,y=Estimate,color=-log(p_LRT,10),shape=type)) +
+  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('GLMM controlling for genus') 
+```
+```{r}
+dat = droplevels(unique( out_t_m[!grepl('(Intercept)',rownames(out_t_m)) & is.finite(out_t_m$lower) & is.finite(out_t_m$upper) ,] ))
+ggplot(data=dat[dat$taxa_type=='none',],aes(x=motif,y=Estimate,color=-log(p,10),shape=type)) +
+  geom_pointrange(aes(ymin = lower, ymax = upper))+ geom_hline(yintercept = 0)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ggtitle('GLM') 
+```
 
 ## Save to xlsx
 ```{r}
@@ -109,5 +202,8 @@ out = out[order(out[,'motif']),]
 library(openxlsx)
 
 write.xlsx(out,file = 'annotation/virus_motif.xlsx')
+write.xlsx(out_g_s,file = 'annotation/virus_genus_species_motif.xlsx')
+write.xlsx(out_t_m,file = 'annotation/virus_genome_taxaControlled_motif.xlsx')
+
 ```
 
