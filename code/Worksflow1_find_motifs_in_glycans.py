@@ -1,5 +1,6 @@
 # load glycans
 G = loadGlycans('...')
+
 M = loadMotifs('...')
 
 # assemble index
