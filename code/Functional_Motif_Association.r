@@ -1,11 +1,12 @@
 library(jsonlite)
+library(reshape2)
 #library(igraph)
 
 ##### load data
 
 # load protein - glycan - motif correspondence
 #glycan_motif2 = fromJSON('data/glycan_motifs/match_full.json')
-glycan_motif_protein = fromJSON(readLines('data/annotation/glycan_uniprotkbID_match_with_motif_hit.json'))
+glycan_motif_protein = fromJSON('data/annotation/glycan_uniprotkbID_match_with_motif_hit.json')
 glycan_protein = melt(lapply(glycan_motif_protein,function(x) x[[2]]))
 colnames(glycan_protein) = c('uniprotswissprot','glytoucanID')
 glycan_motif = melt(do.call(cbind,lapply(glycan_motif_protein,function(x) x[[1]])))
