@@ -29,7 +29,7 @@ domains=na.omit(domains)
 # regression model
 library(doParallel)
 library(foreach)
-cl<-makeCluster(spec = 30)
+cl<-makeCluster(spec = 20)
 registerDoParallel(cl = cl)
 #for( m in unique( glycan_motif$motif))){
 out=foreach( m=unique(glycan_motif$motif) , .combine=c) %dopar% {
