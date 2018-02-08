@@ -33,10 +33,11 @@ library(foreach)
 cl<-makeCluster(spec = 20)
 registerDoParallel(cl = cl)
 #for( m in unique( glycan_motif$motif))){
-jnk=foreach( m=unique(glycan_motif$motif) , .combine=c) %dopar% {
+jnk=foreach( m=unique(glycan_motif$motif) ) %dopar% {
 	out=list()
+	if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
 	gmp_GO = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , GO[,2:3] ) 
-	for( go in levels( gmp_GO$go_id)){
+	for( go in levels( gmp_GO$go_id),.errorhandling='pass'){
 		data = data.frame( go_i = as.numeric(gmp_GO$go_id==go) , gmp_GO)
 		# check assumtions: 
 		tab = table( data$go_i , data$occurance )
@@ -49,6 +50,7 @@ jnk=foreach( m=unique(glycan_motif$motif) , .combine=c) %dopar% {
 #		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
 	}
 	save(out,file=paste0('associations/',m,'.out.rda'))
+	gc(reset=T)
 	NULL
 }
 stopCluster(cl)
