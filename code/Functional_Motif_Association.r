@@ -33,7 +33,7 @@ library(foreach)
 cl<-makeCluster(spec = 20)
 registerDoParallel(cl = cl)
 #for( m in unique( glycan_motif$motif))){
-out=foreach( m=unique(glycan_motif$motif) , .combine=c) %dopar% {
+jnk=foreach( m=unique(glycan_motif$motif) , .combine=c) %dopar% {
 	out=list()
 	gmp_GO = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , GO[,2:3] ) 
 	for( go in levels( gmp_GO$go_id)){
@@ -48,8 +48,9 @@ out=foreach( m=unique(glycan_motif$motif) , .combine=c) %dopar% {
 		out[[paste0(go,'_motif',m)]] = glm( go_i ~ occurance , data=data,weights=data$weights,family='binomial')
 #		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
 	}
-	out
+	save(out,file=paste0('associations/',m,'.out.rda'))
+	NULL
 }
 stopCluster(cl)
 
-hist( tmp<-unlist(lapply(out,function(x) coef(summary(x))[2,4] )))
+#hist( tmp<-unlist(lapply(out,function(x) coef(summary(x))[2,4] )))
