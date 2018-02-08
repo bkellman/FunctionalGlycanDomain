@@ -1,5 +1,5 @@
 library(jsonlite)
-library(igraph)
+#library(igraph)
 
 ##### load data
 
@@ -16,13 +16,13 @@ colnames(glycan_motif) = c('motif','glytoucanID','occurance')
 
 # load functional annotation
 GO = read.csv('data/annotation/annotated_genes.GO.txt')
-adj_GO = as_adjacency_matrix( graph_from_edgelist( as.matrix(GO[,2:3]) , directed=F))
-adj_GO = as.matrix(adj_GO[grepl('^GO:',rownames(adj_GO)),!grepl('^GO:',colnames(adj_GO))])
+#adj_GO = as_adjacency_matrix( graph_from_edgelist( as.matrix(GO[,2:3]) , directed=F))
+#adj_GO = as.matrix(adj_GO[grepl('^GO:',rownames(adj_GO)),!grepl('^GO:',colnames(adj_GO))])
 domains = read.csv('data/annotation/annotated_genes.interpro.txt')
 domains[domains=='']=NA
 domains=na.omit(domains)
-adj_dom = as_adjacency_matrix( graph_from_edgelist( as.matrix(domains[,2:3]) , directed=F))
-adj_dom = as.matrix(adj_dom[grepl('^IPR',rownames(adj_dom)),!grepl('^IPR',colnames(adj_dom))])
+#adj_dom = as_adjacency_matrix( graph_from_edgelist( as.matrix(domains[,2:3]) , directed=F))
+#adj_dom = as.matrix(adj_dom[grepl('^IPR',rownames(adj_dom)),!grepl('^IPR',colnames(adj_dom))])
 
 ##### run stats
 
