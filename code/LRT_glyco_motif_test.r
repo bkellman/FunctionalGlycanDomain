@@ -54,6 +54,10 @@ for( f in 1:ncol(experiment)){
 }
 
 #### background consideration (LRT)
+parent_of <- function(m1,m2,relation){
+	return all nonzero (relations[,m2])
+}
+
 for( f in 1:ncol(experiment)){
 	f_i = experiment[,f]
 	for( m in motifs)
