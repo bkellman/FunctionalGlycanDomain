@@ -27,6 +27,7 @@ domains=na.omit(domains)
 
 ##### run stats
 
+#### run GO
 # regression model
 library(doParallel)
 library(foreach)
@@ -69,24 +70,69 @@ out=do.call(rbind,tmp<-lapply( system('ls associations',inter=T) , function(file
 	entry_count[[as.character(i)]] = length(out)
 	outi
 }))
-save(out,file='associations/out.rda')
+save(out,file='associations/go_out.rda')
 
-## vis
-load('associations/out.rda')
-library(RamiGO)
+#### run domains
+# regression model
+library(doParallel)
+library(foreach)
+cl<-makeCluster(spec = 20)
+registerDoParallel(cl = cl)
+#for( m in unique( glycan_motif$motif))){
+jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
+	out=list()
+	if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
+	gmp_domains = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , domains[,3:4] ) 
+	for( dom in levels( gmp_domains$interpro)){
+		data = data.frame( dom_i = as.numeric(gmp_domains$interpro==dom) , gmp_domains)
+		# check assumtions: 
+		tab = table( data$dom_i , data$occurance )
+		eo = apply(tab,1,function(x) apply(tab,2,function(y) (sum(x)*sum(y))/sum(tab)))
+		if( any(eo<10) ){next} # cochran(1952,1954)
+#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
+		prop = sum(data$dom_i)/nrow(data)
+		data$weights = ifelse( data$dom_i==1 , 1 , prop)
+		out[[paste0(dom,'_motif',m)]] = glm( dom_i ~ occurance , data=data,weights=data$weights,family='binomial')
+#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
+	}
+	save(out,file=paste0('associations/',m,'.out.rda'))
+	gc(reset=T)
+	NULL
+}
+stopCluster(cl)
 
-p=.05
-q=.1
-e=1.5
-out_1860_neg = unlist(lapply(strsplit(out$comparison[grepl('motif1860',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate<(-e)],'_'),function(x) x[1]))
-out_1860_pos = unlist(lapply(strsplit(out$comparison[grepl('motif1860',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate>e],'_'),function(x) x[1]))
+entry_count = list()
+out=do.call(rbind,tmp<-lapply( system('ls associations',inter=T) , function(file){
+	print(file)
+	i = strsplit(file,'\\.')[[1]][1]
+	load(paste0('associations/',file))
+	if(length(out)>0){
+		outi=as.data.frame(do.call(rbind,lapply(out,function(o){
+			coef(summary(o))[2,]
+		})))
+		outi$comparison = names(out)
+	}else{outi=NULL}
+	entry_count[[as.character(i)]] = length(out)
+	outi
+}))
+save(out,file='associations/domain_out.rda')
 
-out_1840_neg = unlist(lapply(strsplit(out$comparison[grepl('motif1840',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate<(-e)],'_'),function(x) x[1]))
-out_1840_pos = unlist(lapply(strsplit(out$comparison[grepl('motif1840',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate>e],'_'),function(x) x[1]))
+# ## vis
+# load('associations/out.rda')
+# library(RamiGO)
 
-goIDs <- unique( c(out_1840_neg,out_1840_pos) )
-tab = table(goIDs)
-color <- ifelse(goIDs %in% out_1840_neg,
-	ifelse(goIDs %in% out_1840_pos,'green','yellow'),
-	ifelse(goIDs %in% out_1840_pos,'blue',NA))
-pngRes <- getAmigoTree(goIDs=goIDs, color=color, filename="m1840_neg_pos", picType="png", saveResult=TRUE)
+# p=.05
+# q=.1
+# e=1.5
+# out_1860_neg = unlist(lapply(strsplit(out$comparison[grepl('motif1860',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate<(-e)],'_'),function(x) x[1]))
+# out_1860_pos = unlist(lapply(strsplit(out$comparison[grepl('motif1860',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate>e],'_'),function(x) x[1]))
+
+# out_1840_neg = unlist(lapply(strsplit(out$comparison[grepl('motif1840',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate<(-e)],'_'),function(x) x[1]))
+# out_1840_pos = unlist(lapply(strsplit(out$comparison[grepl('motif1840',out$comparison) & p.adjust(out[['Pr(>|z|)']],'fdr')<.1 & out$Estimate>e],'_'),function(x) x[1]))
+
+# goIDs <- unique( c(out_1840_neg,out_1840_pos) )
+# tab = table(goIDs)
+# color <- ifelse(goIDs %in% out_1840_neg,
+# 	ifelse(goIDs %in% out_1840_pos,'green','yellow'),
+# 	ifelse(goIDs %in% out_1840_pos,'blue',NA))
+# pngRes <- getAmigoTree(goIDs=goIDs, color=color, filename="m1840_neg_pos", picType="png", saveResult=TRUE)
