@@ -57,10 +57,11 @@ jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 stopCluster(cl)
 
 entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
+out=do.call(rbind,tmp<-lapply( system('ls *.out.rda',inter=T) , function(file){
 	print(file)
 	i = strsplit(file,'\\.')[[1]][1]
-	load(paste0('associations/',file))
+	#load(paste0('associations/',file))
+	load(file)
 	if(length(out)>0){
 		outi=as.data.frame(do.call(rbind,lapply(out,function(o){
 			coef(summary(o))[2,]
@@ -103,10 +104,11 @@ jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 stopCluster(cl)
 
 entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
+out=do.call(rbind,tmp<-lapply( system('ls *.out.rda',inter=T) , function(file){
 	print(file)
 	i = strsplit(file,'\\.')[[1]][1]
-	load(paste0('associations/',file))
+	# load(paste0('associations/',file))
+	load(file)
 	if(length(out)>0){
 		outi=as.data.frame(do.call(rbind,lapply(out,function(o){
 			coef(summary(o))[2,]
