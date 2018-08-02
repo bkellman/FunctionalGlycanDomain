@@ -57,7 +57,7 @@ jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 stopCluster(cl)
 
 entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls associations',inter=T) , function(file){
+out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
 	print(file)
 	i = strsplit(file,'\\.')[[1]][1]
 	load(paste0('associations/',file))
@@ -71,6 +71,7 @@ out=do.call(rbind,tmp<-lapply( system('ls associations',inter=T) , function(file
 	outi
 }))
 save(out,file='associations/go_out.rda')
+system('rm associations/*.out.rda')
 
 #### run domains
 # regression model
@@ -102,7 +103,7 @@ jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 stopCluster(cl)
 
 entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls associations',inter=T) , function(file){
+out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
 	print(file)
 	i = strsplit(file,'\\.')[[1]][1]
 	load(paste0('associations/',file))
@@ -116,6 +117,7 @@ out=do.call(rbind,tmp<-lapply( system('ls associations',inter=T) , function(file
 	outi
 }))
 save(out,file='associations/domain_out.rda')
+system('rm associations/*.out.rda')
 
 # ## vis
 # load('associations/out.rda')
