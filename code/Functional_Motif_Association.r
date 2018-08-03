@@ -31,7 +31,7 @@ domains=na.omit(domains)
 # regression model
 library(doParallel)
 library(foreach)
-cl<-makeCluster(spec = 20)
+cl<-makeCluster(spec = 30)
 registerDoParallel(cl = cl)
 #for( m in unique( glycan_motif$motif))){
 jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
@@ -57,7 +57,7 @@ jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 stopCluster(cl)
 
 entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls *.out.rda',inter=T) , function(file){
+out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
 	print(file)
 	i = strsplit(file,'\\.')[[1]][1]
 	#load(paste0('associations/',file))
@@ -78,7 +78,7 @@ system('rm associations/*.out.rda')
 # regression model
 library(doParallel)
 library(foreach)
-cl<-makeCluster(spec = 20)
+cl<-makeCluster(spec = 30)
 registerDoParallel(cl = cl)
 #for( m in unique( glycan_motif$motif))){
 jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
@@ -104,11 +104,11 @@ jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 stopCluster(cl)
 
 entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls *.out.rda',inter=T) , function(file){
+out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
 	print(file)
 	i = strsplit(file,'\\.')[[1]][1]
 	# load(paste0('associations/',file))
-	load(file)
+	load(filed)
 	if(length(out)>0){
 		outi=as.data.frame(do.call(rbind,lapply(out,function(o){
 			coef(summary(o))[2,]
