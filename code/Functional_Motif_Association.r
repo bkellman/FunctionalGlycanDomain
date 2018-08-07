@@ -50,7 +50,8 @@ if(run_go){
 			eo = apply(tab,1,function(x){ apply(tab,2,function(y){
 				x=as.numeric(x); y=as.numeric(y); tb = as.numeric(tab)
 				(sum(x)*sum(y))/sum(tb)
-			})})			if( any(eo<10) ){next} # cochran(1952,1954)
+			})})			
+			if( any(eo<10) ){next} # cochran(1952,1954)
 	#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
 			prop = sum(data$go_i)/nrow(data)
 			data$weights = ifelse( data$go_i==1 , 1 , prop)
