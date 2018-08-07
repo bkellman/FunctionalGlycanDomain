@@ -27,99 +27,113 @@ domains=na.omit(domains)
 
 ##### run stats
 
-#### run GO
-# regression model
-library(doParallel)
-library(foreach)
-cl<-makeCluster(spec = 30)
-registerDoParallel(cl = cl)
-#for( m in unique( glycan_motif$motif))){
-jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
-	out=list()
-	if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
-	gmp_GO = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , GO[,2:3] ) 
-	for( go in levels( gmp_GO$go_id)){
-		data = data.frame( go_i = as.numeric(gmp_GO$go_id==go) , gmp_GO)
-		# check assumtions: 
-		tab = table( data$go_i , data$occurance )
-		eo = apply(tab,1,function(x) apply(tab,2,function(y) (sum(x)*sum(y))/sum(tab)))
-		if( any(eo<10) ){next} # cochran(1952,1954)
-#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
-		prop = sum(data$go_i)/nrow(data)
-		data$weights = ifelse( data$go_i==1 , 1 , prop)
-		out[[paste0(go,'_motif',m)]] = glm( go_i ~ occurance , data=data,weights=data$weights,family='binomial')
-#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
+run_go=T
+run_domains=T
+
+if(run_go){
+	#### run GO
+	# regression model
+	library(doParallel)
+	library(foreach)
+	cl<-makeCluster(spec = 20)
+	registerDoParallel(cl = cl)
+	#for( m in unique( glycan_motif$motif))){
+	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
+		out=list()
+		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
+		gmp_GO = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , GO[,2:3] ) 
+		for( go in levels( gmp_GO$go_id)){
+			data = data.frame( go_i = as.numeric(gmp_GO$go_id==go) , gmp_GO)
+			# check assumtions: 
+			tab = table( data$go_i , data$occurance )
+			if(min(dim(tab))<2){next}
+			eo = apply(tab,1,function(x){ apply(tab,2,function(y){
+				x=as.numeric(x); y=as.numeric(y); tb = as.numeric(tab)
+				(sum(x)*sum(y))/sum(tb)
+			})})			if( any(eo<10) ){next} # cochran(1952,1954)
+	#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
+			prop = sum(data$go_i)/nrow(data)
+			data$weights = ifelse( data$go_i==1 , 1 , prop)
+			out[[paste0(go,'_motif',m)]] = glm( go_i ~ occurance , data=data,weights=data$weights,family='binomial')
+	#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
+		}
+		save(out,file=paste0('associations/',m,'.out.rda'))
+		gc(reset=T)
+		NULL
 	}
-	save(out,file=paste0('associations/',m,'.out.rda'))
-	gc(reset=T)
-	NULL
+	stopCluster(cl)
+
+	entry_count = list()
+	out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
+		print(file)
+		i = strsplit(file,'\\.')[[1]][1]
+		#load(paste0('associations/',file))
+		load(file)
+		if(length(out)>0){
+			outi=as.data.frame(do.call(rbind,lapply(out,function(o){
+				coef(summary(o))[2,]
+			})))
+			outi$comparison = names(out)
+		}else{outi=NULL}
+		entry_count[[as.character(i)]] = length(out)
+		outi
+	}))
+	save(out,file='associations/go_out.rda')
+	system('rm associations/*.out.rda')
 }
-stopCluster(cl)
 
-entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
-	print(file)
-	i = strsplit(file,'\\.')[[1]][1]
-	#load(paste0('associations/',file))
-	load(file)
-	if(length(out)>0){
-		outi=as.data.frame(do.call(rbind,lapply(out,function(o){
-			coef(summary(o))[2,]
-		})))
-		outi$comparison = names(out)
-	}else{outi=NULL}
-	entry_count[[as.character(i)]] = length(out)
-	outi
-}))
-save(out,file='associations/go_out.rda')
-system('rm associations/*.out.rda')
-
-#### run domains
-# regression model
-library(doParallel)
-library(foreach)
-cl<-makeCluster(spec = 30)
-registerDoParallel(cl = cl)
-#for( m in unique( glycan_motif$motif))){
-jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
-	out=list()
-	if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
-	gmp_domains = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , domains[,3:4] ) 
-	for( dom in levels( gmp_domains$interpro)){
-		data = data.frame( dom_i = as.numeric(gmp_domains$interpro==dom) , gmp_domains)
-		# check assumtions: 
-		tab = table( data$dom_i , data$occurance )
-		eo = apply(tab,1,function(x) apply(tab,2,function(y) (sum(x)*sum(y))/sum(tab)))
-		if( any(eo<10) ){next} # cochran(1952,1954)
-#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
-		prop = sum(data$dom_i)/nrow(data)
-		data$weights = ifelse( data$dom_i==1 , 1 , prop)
-		out[[paste0(dom,'_motif',m)]] = glm( dom_i ~ occurance , data=data,weights=data$weights,family='binomial')
-#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
+if(run_domains){
+	#### run domains
+	# regression model
+	library(doParallel)
+	library(foreach)
+	cl<-makeCluster(spec = 20)
+	registerDoParallel(cl = cl)
+	#for( m in unique( glycan_motif$motif))){
+	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
+		out=list()
+		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
+		gmp_domains = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , domains[,3:4] ) 
+		for( dom in levels( gmp_domains$interpro)){
+			data = data.frame( dom_i = as.numeric(gmp_domains$interpro==dom) , gmp_domains)
+			# check assumtions: 
+			tab = table( data$dom_i , data$occurance )
+			if(min(dim(tab))<2){next}
+			eo = apply(tab,1,function(x){ apply(tab,2,function(y){
+				x=as.numeric(x); y=as.numeric(y); tb = as.numeric(tab)
+				(sum(x)*sum(y))/sum(tb)
+			})})
+			if( any(eo<10) ){next} # cochran(1952,1954)
+	#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
+			prop = sum(data$dom_i)/nrow(data)
+			data$weights = ifelse( data$dom_i==1 , 1 , prop)
+			out[[paste0(dom,'_motif',m)]] = glm( dom_i ~ occurance , data=data,weights=data$weights,family='binomial')
+	#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
+		}
+		save(out,file=paste0('associations/',m,'.out.rda'))
+		gc(reset=T)
+		NULL
 	}
-	save(out,file=paste0('associations/',m,'.out.rda'))
-	gc(reset=T)
-	NULL
-}
-stopCluster(cl)
+	stopCluster(cl)
 
-entry_count = list()
-out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
-	print(file)
-	i = strsplit(file,'\\.')[[1]][1]
-	# load(paste0('associations/',file))
-	load(filed)
-	if(length(out)>0){
-		outi=as.data.frame(do.call(rbind,lapply(out,function(o){
-			coef(summary(o))[2,]
-		})))
-		outi$comparison = names(out)
-	}else{outi=NULL}
-	entry_count[[as.character(i)]] = length(out)
-	outi
-}))
-save(out,file='associations/domain_out.rda')
-system('rm associations/*.out.rda')
+	entry_count = list()
+	out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
+		print(file)
+		i = strsplit(file,'\\.')[[1]][1]
+		# load(paste0('associations/',file))
+		load(filed)
+		if(length(out)>0){
+			outi=as.data.frame(do.call(rbind,lapply(out,function(o){
+				coef(summary(o))[2,]
+			})))
+			outi$comparison = names(out)
+		}else{outi=NULL}
+		entry_count[[as.character(i)]] = length(out)
+		outi
+	}))
+	save(out,file='associations/domain_out.rda')
+	system('rm associations/*.out.rda')
+}
 
 # ## vis
 # load('associations/out.rda')
