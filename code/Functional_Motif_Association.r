@@ -25,10 +25,22 @@ domains=na.omit(domains)
 #adj_dom = as_adjacency_matrix( graph_from_edgelist( as.matrix(domains[,2:3]) , directed=F))
 #adj_dom = as.matrix(adj_dom[grepl('^IPR',rownames(adj_dom)),!grepl('^IPR',colnames(adj_dom))])
 
+# load PPI network
+# @erick, you will have to find an appropriate PPI network. checkout HumanNet and String but also consider looking for a database which contains more realistic interactions. Yeast interaction do not contain glycosylation. Consider the glycosyl-accuracy of the PPI database you choose
+
 ##### run stats
 
 run_go=T
 run_domains=T
+run_PPI=F
+
+# glycan_protein_DT = as.data.table(glycan_protein)
+# #setkey(glycan_protein_DT,glytoucanID)
+# glycan_motif_DT = as.data.table(glycan_motif)
+# #setkey(glycan_motif_DT,glytoucanID)
+# tmp = merge(glycan_protein_DT,glycan_motif_DT,all=T,by='glytoucanID',sort=F,allow.cartesian=T)
+# GO_DT = as.data.table(GO[,1:3])
+# tmp2 = merge(tmp,GO_DT,all=T,by='uniprotswissprot',sort=F,allow.cartesian=T)
 
 if(run_go){
 	#### run GO
@@ -41,7 +53,8 @@ if(run_go){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 		out=list()
 		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
-		gmp_GO = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , GO[,2:3] ) 
+		gmp_GO = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , GO[,2:3] ) )
+#		gmp_GO = droplevels(merge( merge( glycan_protein , glycan_motif[idx,] ) , GO[,2:3] ) )
 		for( go in levels( gmp_GO$go_id)){
 			data = data.frame( go_i = as.numeric(gmp_GO$go_id==go) , gmp_GO)
 			# check assumtions: 
@@ -88,13 +101,13 @@ if(run_domains){
 	# regression model
 	library(doParallel)
 	library(foreach)
-	cl<-makeCluster(spec = 20)
+	cl<-makeCluster(spec = 10)
 	registerDoParallel(cl = cl)
 	#for( m in unique( glycan_motif$motif))){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 		out=list()
 		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
-		gmp_domains = merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , domains[,3:4] ) 
+		gmp_domains = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , domains[,2:3] ) )
 		for( dom in levels( gmp_domains$interpro)){
 			data = data.frame( dom_i = as.numeric(gmp_domains$interpro==dom) , gmp_domains)
 			# check assumtions: 
@@ -135,6 +148,63 @@ if(run_domains){
 	save(out,file='associations/domain_out.rda')
 	system('rm associations/*.out.rda')
 }
+
+
+
+if(run_PPI){
+	#### run domains
+	# regression model
+	library(doParallel)
+	library(foreach)
+	cl<-makeCluster(spec = 10)
+	registerDoParallel(cl = cl)
+	#for( m in unique( glycan_motif$motif))){
+	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
+		out=list()
+		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
+		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI[,3:4] ) ) # @ erick, fix this
+		for( ppi in levels( gmp_PPI$interpro)){
+			data = data.frame( ppi_i = as.numeric(gmp_PPI$interpro==ppi) , gmp_PPI)
+			# check assumtions: 
+			tab = table( data$ppi_i , data$occurance )
+			if(min(dim(tab))<2){next}
+			eo = apply(tab,1,function(x){ apply(tab,2,function(y){
+				x=as.numeric(x); y=as.numeric(y); tb = as.numeric(tab)
+				(sum(x)*sum(y))/sum(tb)
+			})})
+			if( any(eo<10) ){next} # cochran(1952,1954)
+	#		if( any(eo<1) | sum(eo<5)<(.2*prod(dim(tab))) ){next} # Yates, Moore & McCabe 1999 (tables larger and 2x2)
+			prop = sum(data$ppi_i)/nrow(data)
+			data$weights = ifelse( data$ppi_i==1 , 1 , prop)
+			out[[paste0(ppi,'_motif',m)]] = glm( ppi_i ~ occurance , data=data,weights=data$weights,family='binomial')
+	#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
+		}
+		save(out,file=paste0('associations/',m,'.out.rda'))
+		gc(reset=T)
+		NULL
+	}
+	stopCluster(cl)
+
+	entry_count = list()
+	out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
+		print(file)
+		i = strsplit(file,'\\.')[[1]][1]
+		# load(paste0('associations/',file))
+		load(filed)
+		if(length(out)>0){
+			outi=as.data.frame(do.call(rbind,lapply(out,function(o){
+				coef(summary(o))[2,]
+			})))
+			outi$comparison = names(out)
+		}else{outi=NULL}
+		entry_count[[as.character(i)]] = length(out)
+		outi
+	}))
+	save(out,file='associations/PPI_out.rda')
+	system('rm associations/*.out.rda')
+}
+
+
 
 # ## vis
 # load('associations/out.rda')
