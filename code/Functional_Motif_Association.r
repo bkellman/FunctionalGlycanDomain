@@ -6,7 +6,7 @@ library(reshape2)
 
 # load protein - glycan - motif correspondence
 #glycan_motif2 = fromJSON('data/glycan_motifs/match_full.json')
-glycan_motif_protein = fromJSON('data/annotation/glycan_uniprotkbID_match_with_motif_hit.json')
+glycan_motif_protein = fromJSON('../data/annotation/glycan_uniprotkbID_match_with_motif_hit.json')
 glycan_protein = melt(lapply(glycan_motif_protein,function(x) x[[2]]))
 colnames(glycan_protein) = c('uniprotswissprot','glytoucanID')
 glycan_motif = melt(do.call(cbind,lapply(glycan_motif_protein,function(x) x[[1]])))
@@ -16,10 +16,10 @@ colnames(glycan_motif) = c('motif','glytoucanID','occurance')
 #glycans = fromJSON('data/glycan_motifs/glycan_within_all_lectins.json')
 
 # load functional annotation
-GO = read.csv('data/annotation/annotated_genes.GO.txt')
+GO = read.csv('../data/annotation/annotated_genes.GO.txt')
 #adj_GO = as_adjacency_matrix( graph_from_edgelist( as.matrix(GO[,2:3]) , directed=F))
 #adj_GO = as.matrix(adj_GO[grepl('^GO:',rownames(adj_GO)),!grepl('^GO:',colnames(adj_GO))])
-domains = read.csv('data/annotation/annotated_genes.interpro.txt')
+domains = read.csv('../data/annotation/annotated_genes.interpro.txt')
 domains[domains=='']=NA
 domains=na.omit(domains)
 #adj_dom = as_adjacency_matrix( graph_from_edgelist( as.matrix(domains[,2:3]) , directed=F))
@@ -27,13 +27,13 @@ domains=na.omit(domains)
 
 # load PPI network
 # PICKLE PPI
-PPI = read.csv('data/ppi_networks/PICKLE2_2_UniProtNormalizedTabular-default.txt', sep = '\t')
+PPI = read.csv('../data/ppi_networks/PICKLE2_2_UniProtNormalizedTabular-default.txt', sep = '\t')
 
 ##### run stats
 
-run_go=T
-run_domains=T
-run_PPI=F
+run_go=F
+run_domains=F
+run_PPI=T
 
 # glycan_protein_DT = as.data.table(glycan_protein)
 # #setkey(glycan_protein_DT,glytoucanID)
@@ -102,7 +102,7 @@ if(run_domains){
 	# regression model
 	library(doParallel)
 	library(foreach)
-	cl<-makeCluster(spec = 10)
+	cl<-makeCluster(spec = 4)
 	registerDoParallel(cl = cl)
 	#for( m in unique( glycan_motif$motif))){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
@@ -157,7 +157,7 @@ if(run_PPI){
 	# regression model
 	library(doParallel)
 	library(foreach)
-	cl<-makeCluster(spec = 10)
+	cl<-makeCluster(spec = 4)
 	registerDoParallel(cl = cl)
 	#for( m in unique( glycan_motif$motif))){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
