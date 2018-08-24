@@ -26,7 +26,8 @@ domains=na.omit(domains)
 #adj_dom = as.matrix(adj_dom[grepl('^IPR',rownames(adj_dom)),!grepl('^IPR',colnames(adj_dom))])
 
 # load PPI network
-# @erick, you will have to find an appropriate PPI network. checkout HumanNet and String but also consider looking for a database which contains more realistic interactions. Yeast interaction do not contain glycosylation. Consider the glycosyl-accuracy of the PPI database you choose
+# PICKLE PPI
+PPI = read.csv('data/ppi_networks/PICKLE2_2_UniProtNormalizedTabular-default.txt', sep = '\t')
 
 ##### run stats
 
@@ -162,7 +163,7 @@ if(run_PPI){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 		out=list()
 		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
-		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI[,3:4] ) ) # @ erick, fix this
+		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI[,1:2] ) ) # @ erick, fix this
 		for( ppi in levels( gmp_PPI$interpro)){
 			data = data.frame( ppi_i = as.numeric(gmp_PPI$interpro==ppi) , gmp_PPI)
 			# check assumtions: 
