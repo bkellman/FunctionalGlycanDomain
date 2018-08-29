@@ -28,9 +28,12 @@ domains=na.omit(domains)
 # load PPI network
 # PICKLE PPI
 PPI = read.csv('../data/ppi_networks/PICKLE2_2_UniProtNormalizedTabular-default.txt', sep = '\t')
+#PPI = read.csv('../data/ppi_networks/DB_HPRD_UNIPROT_IDS.txt', sep = '\t')
+PPI = PPI[,1:2]
+colnames(PPI) = c('uniprotswissprot', 'target')
 
 ##### run stats
-
+n_jobs = 10
 run_go=F
 run_domains=F
 run_PPI=T
@@ -48,7 +51,7 @@ if(run_go){
 	# regression model
 	library(doParallel)
 	library(foreach)
-	cl<-makeCluster(spec = 20)
+	cl<-makeCluster(spec = n_jobs)
 	registerDoParallel(cl = cl)
 	#for( m in unique( glycan_motif$motif))){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
@@ -102,7 +105,7 @@ if(run_domains){
 	# regression model
 	library(doParallel)
 	library(foreach)
-	cl<-makeCluster(spec = 4)
+	cl<-makeCluster(spec = n_jobs)
 	registerDoParallel(cl = cl)
 	#for( m in unique( glycan_motif$motif))){
 	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
@@ -136,7 +139,7 @@ if(run_domains){
 		print(file)
 		i = strsplit(file,'\\.')[[1]][1]
 		# load(paste0('associations/',file))
-		load(filed)
+		load(file)
 		if(length(out)>0){
 			outi=as.data.frame(do.call(rbind,lapply(out,function(o){
 				coef(summary(o))[2,]
@@ -157,15 +160,19 @@ if(run_PPI){
 	# regression model
 	library(doParallel)
 	library(foreach)
-	cl<-makeCluster(spec = 4)
+    #library(bigmemory)
+	cl<-makeCluster(spec = n_jobs)
 	registerDoParallel(cl = cl)
-	#for( m in unique( glycan_motif$motif))){
-	jnk=foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
+    #PPI_big <- as.big.matrix(x = PPI[,1:2], backingfile = "PPI_DB.bin", descriptorfile = "PPI_DB.desc")
+	foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
+	#for( m in unique( glycan_motif$motif)){
+        #PPI_b <- attach.big.matrix("PPI_DB.desc")
 		out=list()
-		if( file.exists(paste0('associations/',m,'.out.rda')) ) { NULL }
-		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI[,1:2] ) ) # @ erick, fix this
-		for( ppi in levels( gmp_PPI$interpro)){
-			data = data.frame( ppi_i = as.numeric(gmp_PPI$interpro==ppi) , gmp_PPI)
+		if( file.exists(paste0('../associations/',m,'.out.rda')) ) { NULL }
+		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI) ) # @ erick, fix this
+		#foreach( ppi=levels( gmp_PPI$target) ,.errorhandling='pass' ) %dopar% {
+		for( ppi in levels( gmp_PPI$target)){
+			data = data.frame( ppi_i = as.numeric(gmp_PPI$target==ppi) , gmp_PPI)
 			# check assumtions: 
 			tab = table( data$ppi_i , data$occurance )
 			if(min(dim(tab))<2){next}
@@ -180,14 +187,14 @@ if(run_PPI){
 			out[[paste0(ppi,'_motif',m)]] = glm( ppi_i ~ occurance , data=data,weights=data$weights,family='binomial')
 	#		out[[paste0(go,'_motif',m)]] = glmer( go_i ~ occurance + (1|uniprotswissprot) , data=data,weights=data$weights , family='binomial')
 		}
-		save(out,file=paste0('associations/',m,'.out.rda'))
+		save(out,file=paste0('../associations/',m,'.out.rda'))
 		gc(reset=T)
 		NULL
 	}
 	stopCluster(cl)
 
 	entry_count = list()
-	out=do.call(rbind,tmp<-lapply( system('ls associations/*.out.rda',inter=T) , function(file){
+	out=do.call(rbind,tmp<-lapply( system('ls ../associations/*.out.rda',inter=T) , function(file){
 		print(file)
 		i = strsplit(file,'\\.')[[1]][1]
 		# load(paste0('associations/',file))
@@ -201,8 +208,8 @@ if(run_PPI){
 		entry_count[[as.character(i)]] = length(out)
 		outi
 	}))
-	save(out,file='associations/PPI_out.rda')
-	system('rm associations/*.out.rda')
+	save(out,file='../associations/PPI_out.rda')
+	system('rm ../associations/*.out.rda')
 }
 
 
