@@ -29,6 +29,7 @@ domains=na.omit(domains)
 # PICKLE PPI
 PPI = read.csv('../data/ppi_networks/PICKLE2_2_UniProtNormalizedTabular-default.txt', sep = '\t')
 #PPI = read.csv('../data/ppi_networks/DB_HPRD_UNIPROT_IDS.txt', sep = '\t')
+#PPI = read.csv('../data/ppi_networks/DB_BIOGRID_UNIPROT.txt', sep = '\t')
 PPI = PPI[,1:2]
 colnames(PPI) = c('uniprotswissprot', 'target')
 
@@ -198,7 +199,7 @@ if(run_PPI){
 		print(file)
 		i = strsplit(file,'\\.')[[1]][1]
 		# load(paste0('associations/',file))
-		load(filed)
+		load(file)
 		if(length(out)>0){
 			outi=as.data.frame(do.call(rbind,lapply(out,function(o){
 				coef(summary(o))[2,]
