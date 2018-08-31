@@ -161,16 +161,13 @@ if(run_PPI){
 	# regression model
 	library(doParallel)
 	library(foreach)
-    #library(bigmemory)
 	cl<-makeCluster(spec = n_jobs)
 	registerDoParallel(cl = cl)
-    #PPI_big <- as.big.matrix(x = PPI[,1:2], backingfile = "PPI_DB.bin", descriptorfile = "PPI_DB.desc")
 	foreach( m=unique(glycan_motif$motif) ,.errorhandling='pass' ) %dopar% {
 	#for( m in unique( glycan_motif$motif)){
-        #PPI_b <- attach.big.matrix("PPI_DB.desc")
 		out=list()
 		if( file.exists(paste0('../associations/',m,'.out.rda')) ) { NULL }
-		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI) ) # @ erick, fix this
+		gmp_PPI = droplevels(merge( merge( glycan_protein , glycan_motif[glycan_motif$motif==m,] ) , PPI) )
 		#foreach( ppi=levels( gmp_PPI$target) ,.errorhandling='pass' ) %dopar% {
 		for( ppi in levels( gmp_PPI$target)){
 			data = data.frame( ppi_i = as.numeric(gmp_PPI$target==ppi) , gmp_PPI)
